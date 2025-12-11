@@ -2,26 +2,27 @@ Sidecar
 
 ### Sidecar Contract
 
-**MANDATORY**: Tools in /sidecar/ MUST be considered for all relevant analysis, reasoning, and validation work.
+**MANDATORY**: Tools in /sidecar/ MUST be considered for all relevant verification and analysis work.
 
-**Strong Directive**: Before responding to any architectural, design, or technical question:
-1. ALWAYS use Clojure sidecar for computational analysis first
-2. Validate constraints, generate scenarios, check consistency
-3. Present computational results alongside conclusions
-4. Never rely on pure text reasoning when formal analysis is possible
+**Strong Directive**: Before responding to architectural, design, or technical questions:
+1. Use verification tools to check real constraints and data
+2. Validate against actual system state, not generated scenarios
+3. Present analysis of real data alongside conclusions
+4. Mark TODO/incomplete clearly - never present computational theater as results
 
-**Explicit Triggers for Clojure Usage:**
-- Architecture decisions → validate with constraint checking
-- Component integration → generate test scenarios  
-- Data structure design → property-based validation
-- Error analysis → formal relationship checking
-- Planning work → systematic scenario generation
+**Explicit Triggers for Tool Usage:**
+- Architecture decisions → Z3 constraint proving
+- Component integration → Real API testing and validation
+- Data structure design → Simple validation scripts against actual data
+- Error analysis → Log analysis and pattern extraction
+- Planning work → Clear TODO lists with real implementation requirements
 
 **Habit Anchors:**
-- See "architecture" → reach for Clojure constraint validation
-- See "integration" → reach for property-based test generation  
-- See "consistency" → reach for datalog relationship analysis
-- See "validation" → reach for formal verification
+- See "architecture" → reach for **Z3 constraint verification**
+- See "integration" → reach for **real integration testing**
+- See "consistency" → reach for **disposable analysis scripts**
+- See "validation" → reach for **verification against actual code**
+- See "modeling" → reach for **simple EDN data** (not generative modeling)
 
 Tools must never modify or generate code under /src/.
 Use them for analysis, checking, planning, exploration, or oracle-style work.
@@ -60,6 +61,8 @@ We're aiming for a dev-env-only regression harness, and an optimal environment f
 
 #### disposable coding: ALWAYS use Clojure instead of Python for any computational work
 
+**Critical principle:** Clojure is for **analysis and verification**, not **domain modeling or generation**. Use it to check real data, not create convincing fakes.
+
 ## Agent Tooling for Disposable Computation
 
 When Claude needs to run throwaway code (data sampling, query building, exploration), use these tools in order of preference:
@@ -81,26 +84,26 @@ clojure -Sdeps '{:deps {nrepl/nrepl {:mvn/version "1.0.0"}}}' -M -e \
 
 **Examples:**
 ```bash
-# Query domain knowledge
+# Analyze real log files
 clojure -Sdeps '{:deps {nrepl/nrepl {:mvn/version "1.0.0"}}}' -M -e \
 '(do (require '"'"'nrepl.core)
      (with-open [conn (nrepl.core/connect :port 7888)]
        (-> (nrepl.core/client conn 1000)
-           (nrepl.core/message {:op "eval" :code "(require '"'"'sidecar.domain-knowledge) (sidecar.domain-knowledge/query :property-types)"})
+           (nrepl.core/message {:op "eval" :code "(analyze-logs \"app.log\")"})
            nrepl.core/response-values
            first)))'
 
-# Sample data from API
-# (define function in REPL, then call it)
+# Validate actual configuration files
+# (load and check real config data)
 
-# Build OpenSearch queries
-# (access query builders already loaded in REPL)
+# Parse system state
+# (check actual running processes, ports, etc.)
 ```
 
 **Trade-offs:**
-- ✅ Access to all Sidecar namespaces and state
+- ✅ Access to all Sidecar analysis functions and state
 - ✅ Can def vars that persist in the REPL session
-- ✅ Domain validators and infrastructure queries available
+- ✅ Log analysis, config validation, and data parsing available
 - ❌ ~1-2s JVM startup cost per invocation
 - ❌ Output capture is simple (return values only)
 
@@ -117,23 +120,23 @@ bb -e '(-> (slurp "data.json")
 
 **Examples:**
 ```bash
-# Transform data
-bb -e '(->> (range 1 201) (map #(str "adid-" %)) (take 10))'
+# Parse real config files
+bb -e '(-> (slurp "config.json") (json/parse-string) (get "database"))'
 
-# Process API responses
-bb -e '(-> (slurp "https://api/endpoint")
+# Process actual API responses
+bb -e '(-> (slurp "https://api/health")
            (json/parse-string)
-           (get "results"))'
+           (get "status"))'
 
-# Generate test data
-bb -e '(repeatedly 200 #(rand-int 10000))'
+# Analyze actual system data
+bb -e '(->> (slurp "ports.txt") (clojure.string/split-lines) (map #(Integer/parseInt %)))'
 ```
 
 **Trade-offs:**
 - ✅ Fast startup (~50ms)
 - ✅ Rich standard library
 - ✅ Good for data pipelines
-- ❌ No access to Sidecar domain knowledge
+- ❌ No access to Sidecar analysis functions
 - ❌ No persistent state between calls
 
 ### 3. Command Line Tools - For Simple Operations
@@ -161,7 +164,7 @@ git log --oneline -10
 ## Decision Tree
 
 ```
-Do you need Sidecar domain knowledge/validators/state?
+Do you need Sidecar analysis functions/state?
   YES → Use nREPL (port 7888)
   NO → ↓
 
@@ -201,7 +204,7 @@ you can read/write under sidecar/
 
 use this sandbox to run checks, constraints, oracles
 
-you can generate reports and golden outputs
+you can analyze actual data and generate analysis reports
 
 We do not use clojure to implement runtime logic for the deployable application.
 
@@ -220,46 +223,35 @@ clj -M:nrepl
 ```
 
 Quick verification commands:
-- `(check)` - Run all consistency checks
+- `(analyze-logs "path")` - Parse and analyze log files
+- `(validate-config config)` - Validate configuration structure
 - `(help)` - Show available commands
-- `(check-kv)` - Verify key-value store patterns
 
 
 ## /minikanren/
 
-miniKanren is only for:
-
-* search
-* planning in small discrete spaces
-* generating examples / counterexamples
-
-never use it to:
-
-* build big frameworks
-* implement production logic
-* drive large refactors
-
-No matter how much you use logic internally, present your findings in small, human-sized conclusions. Use logic for your thinking, not as an excuse to compress explanation.
+**REMOVED: miniKanren** - Risk of generating scenarios instead of proving constraints
 
 
 ## /z3/
 
-constraints and correctness
+Z3 SMT solver for:
+
+* Proving system constraints hold
+* Finding constraint violations  
+* Verifying architectural decisions
+
+Use Z3 to prove properties about your actual system, not theoretical models.
 
 If you’re worried about invariants being violated, add/extend a Z3 case and run the Z3 harness via Clojure. Summarise only the invariant and whether it holds. but please don’t dump solver logs at me.
 
 
-## /datalog/
+## Removed Tools
 
-relationships, consistency
+**Removed sections:**
+- `/datalog/` - Risk of creating relationship models instead of checking real relationships  
+- `/cue/` - Prefer simple validation scripts over schema generation
+- `/fuzzing/` - Risk of property-based generation creating convincing fakes
 
-
-## /cue/
-
-schema validation, unification
-
-
-## /fuzzing/
-
-property based generation
+**Focus on:** Z3 for mathematical proofs, Clojure for disposable analysis, EDN for clear data storage.
 
