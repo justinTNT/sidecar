@@ -1,3 +1,10 @@
 {:paths ["src"]
- :deps {}}
-
+ :deps {org.clojure/clojure {:mvn/version "1.11.1"}
+        nrepl/nrepl {:mvn/version "1.1.1"}}
+ :aliases
+ {:nrepl
+  {:main-opts ["-m" "sidecar.repl"]}
+  :test
+  {:extra-deps {org.clojure/test.check {:mvn/version "1.1.1"}}
+   :main-opts ["-m" "sidecar.test-harness"]}}
+}
